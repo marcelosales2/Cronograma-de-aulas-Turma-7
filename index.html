@@ -1120,6 +1120,111 @@ main {
   .weekbar, .search { display: none; }
   .lessons { grid-template-columns: repeat(3, 1fr); }
 }
+
+/* AVISOS AUTOMÁTICOS — ESTÁGIO E DEFESA PESSOAL */
+.class-reminder-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 10000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.68);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  animation: fadeInOverlay 0.22s ease;
+}
+.class-reminder-card {
+  width: min(760px, 100%);
+  max-height: 88vh;
+  overflow: auto;
+  position: relative;
+  background: #ffffff;
+  color: #0f172a;
+  border: 2px solid #ffffff;
+  border-radius: 24px;
+  padding: 24px;
+  box-shadow: 0 24px 70px rgba(0, 0, 0, 0.32);
+  animation: popInCard 0.25s cubic-bezier(0.22, 1, 0.36, 1);
+}
+.class-reminder-card::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 6px;
+  border-radius: 24px 24px 0 0;
+  background: linear-gradient(90deg, #0066ff, #0d9488, #f59e0b);
+}
+.class-reminder-card h2 {
+  margin: 2px 0 12px;
+  color: #0f233c;
+  font-size: clamp(18px, 3vw, 23px);
+  line-height: 1.3;
+  font-weight: 800;
+}
+.class-reminder-card p {
+  color: #334155;
+  font-size: 14px;
+  line-height: 1.6;
+  margin: 9px 0;
+}
+.class-reminder-card .reminder-date {
+  display: inline-block;
+  margin: 0 0 12px;
+  padding: 6px 11px;
+  border-radius: 10px;
+  color: #075985;
+  background: #e0f2fe;
+  font-size: 12px;
+  font-weight: 800;
+}
+.class-reminder-time-block {
+  margin: 12px 0;
+  padding: 12px 14px;
+  border: 1px solid #dbeafe;
+  border-radius: 14px;
+  background: #f8fbff;
+}
+.class-reminder-time-block h3 {
+  margin: 0 0 8px;
+  color: #0f233c;
+  font-size: 14px;
+  font-weight: 800;
+}
+.class-reminder-time-block ul {
+  margin: 0;
+  padding-left: 20px;
+}
+.class-reminder-time-block li {
+  margin: 7px 0;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.class-reminder-time-block li strong { color: #0f233c; }
+.class-reminder-time-block li span { color: #475569; }
+.class-reminder-ok {
+  display: block;
+  width: 100%;
+  margin-top: 18px;
+  border: 0;
+  border-radius: 13px;
+  padding: 13px 18px;
+  background: linear-gradient(135deg, #0f233c, #163256);
+  color: #ffffff;
+  font: inherit;
+  font-size: 14px;
+  font-weight: 800;
+  cursor: pointer;
+}
+.class-reminder-ok:hover { filter: brightness(1.12); }
+@media (max-width: 520px) {
+  .class-reminder-card { padding: 21px 17px; border-radius: 19px; }
+}
+
 </style>
 </head>
 <body>
@@ -2119,6 +2224,7 @@ renderLessons();
 // ==========================================
 const ANIVERSARIANTES_DATA = [
   { name: "Maurão", date: "06/01" },
+  { name: "Saboya", date: "14/01" },
   { name: "Marcos Henrique Brito", date: "24/01" },
   { name: "Marcelo Sales", date: "02/02" },
   { name: "M Souza", date: "23/04" },
@@ -2262,6 +2368,184 @@ document.getElementById("backFromAnivBtn").addEventListener("click", closeAnivVi
 document.getElementById("anivMonthFilter").addEventListener("change", renderAniversariantes);
 document.getElementById("anivSearch").addEventListener("input", renderAniversariantes);
 
+
+// ==========================================
+// AVISOS AUTOMÁTICOS DO DIA ANTERIOR
+// Exibe os avisos quando houver estágio ou Defesa Pessoal no dia seguinte.
+// O usuário pode fechar pelo botão OK ou clicando fora da mensagem.
+// Cada aviso aparece uma vez por data em cada navegador.
+// ==========================================
+function reminderAddDays(isoDate, amount) {
+  const parts = isoDate.split("-").map(Number);
+  const date = new Date(parts[0], parts[1] - 1, parts[2], 12, 0, 0);
+  date.setDate(date.getDate() + amount);
+  return [
+    date.getFullYear(),
+    String(date.getMonth() + 1).padStart(2, "0"),
+    String(date.getDate()).padStart(2, "0")
+  ].join("-");
+}
+
+function reminderTodayISO() {
+  const now = new Date();
+  return [
+    now.getFullYear(),
+    String(now.getMonth() + 1).padStart(2, "0"),
+    String(now.getDate()).padStart(2, "0")
+  ].join("-");
+}
+
+function reminderWeekday(isoDate) {
+  const [year, month, day] = isoDate.split("-").map(Number);
+  return new Intl.DateTimeFormat("pt-BR", { weekday: "long" })
+    .format(new Date(year, month - 1, day, 12));
+}
+
+function showUpcomingClassReminders() {
+  const tomorrowISO = reminderAddDays(reminderTodayISO(), 1);
+  const tomorrowLabel = `${reminderWeekday(tomorrowISO)}, ${formatBR(tomorrowISO)}`;
+  const reminders = [];
+
+  // Aviso de estágio: usa a grade de estágios com grupos, horários,
+  // locais e professores já cadastrados no próprio HTML.
+  const stageTomorrow = ESTAGIO_DATA.filter(item => item.date === tomorrowISO);
+  if (stageTomorrow.length) {
+    const byTime = {};
+    stageTomorrow.forEach(item => {
+      if (!byTime[item.time]) byTime[item.time] = [];
+      byTime[item.time].push(item);
+    });
+
+    const stageDetails = Object.entries(byTime).map(([time, items]) => `
+      <section class="class-reminder-time-block">
+        <h3>⏰ ${escapeHtml(time)}</h3>
+        <ul>
+          ${items.map(item => {
+            const teachers = [item.prof1, item.prof2, item.prof3, item.prof4]
+              .filter(Boolean).join(" / ") || "A confirmar";
+            return `
+              <li>
+                <strong>${escapeHtml(item.group)}</strong> — ${escapeHtml(item.local || "Local a confirmar")}
+                ${item.orgao ? `<span>(${escapeHtml(item.orgao)})</span>` : ""}
+                <br><span><strong>Professor(a):</strong> ${escapeHtml(teachers)}</span>
+                ${item.address ? `<br><span>📍 ${escapeHtml(item.address)}</span>` : ""}
+              </li>
+            `;
+          }).join("")}
+        </ul>
+      </section>
+    `).join("");
+
+    reminders.push({
+      key: `turma7-aviso-estagio-${tomorrowISO}`,
+      title: "⚠️ AVISO IMPORTANTE – ESTÁGIO PRESENCIAL ⚠️",
+      content: `
+        <span class="reminder-date">📅 Amanhã: ${escapeHtml(tomorrowLabel)}</span>
+        <p><strong>Pessoal, atenção!</strong> Amanhã haverá aula de Estágio presencial.</p>
+        <p>📍 <strong>Local e Professor(a):</strong> Verifiquem com antecedência o local correto de vocês e qual professor(a) deverão procurar.</p>
+        ${stageDetails}
+        <p>📝 <strong>Frequência:</strong> Não se esqueçam de retirar a lista de presença com a representante de sala (<strong>Milena</strong>).</p>
+        <p>Contamos com a pontualidade e colaboração de todos!</p>
+      `
+    });
+  }
+
+  // Aviso de Defesa Pessoal: identifica a aula do dia seguinte diretamente
+  // na programação principal, evitando datas ou horários inventados.
+  const defenseTomorrow = DATA.filter(item =>
+    item.date === tomorrowISO &&
+    (item.subject || "").toLowerCase().includes("defesa pessoal policial e condicionamento físico")
+  );
+
+  if (defenseTomorrow.length) {
+    const uniqueClasses = [];
+    const seen = new Set();
+    defenseTomorrow.forEach(item => {
+      const signature = `${item.time || ""}|${item.location || ""}`;
+      if (!seen.has(signature)) {
+        seen.add(signature);
+        uniqueClasses.push(item);
+      }
+    });
+
+    const classInfo = uniqueClasses.map(item => `
+      <section class="class-reminder-time-block">
+        <h3>⏰ ${escapeHtml(item.time || "Horário conforme a agenda")}</h3>
+        ${item.location ? `<p>📍 <strong>Local:</strong> ${escapeHtml(item.location)}</p>` : ""}
+      </section>
+    `).join("");
+
+    reminders.push({
+      key: `turma7-aviso-defesa-pessoal-${tomorrowISO}`,
+      title: "🥋 Defesa Pessoal Policial e Condicionamento Físico",
+      content: `
+        <span class="reminder-date">📅 Amanhã: ${escapeHtml(tomorrowLabel)}</span>
+        <p><strong>Pessoal, lembrando que amanhã teremos aula de Defesa Pessoal Policial e Condicionamento Físico.</strong></p>
+        ${classInfo}
+        <p>Por favor, não se esqueçam de vir com a <strong>roupa adequada</strong> para a prática das atividades! 🥋🏃‍♂️</p>
+        <p>Nos vemos lá!</p>
+      `
+    });
+  }
+
+  // Evita repetir o mesmo aviso a cada atualização da página no mesmo dia.
+  const pending = reminders.filter(item => {
+    try {
+      return localStorage.getItem(item.key) !== "1";
+    } catch (error) {
+      return true;
+    }
+  });
+
+  function showNextReminder() {
+    if (!pending.length) return;
+
+    const reminder = pending.shift();
+    try {
+      localStorage.setItem(reminder.key, "1");
+    } catch (error) {
+      // Se o navegador bloquear armazenamento, o aviso continua funcionando.
+    }
+
+    const overlay = document.createElement("div");
+    overlay.className = "class-reminder-overlay";
+    overlay.setAttribute("role", "dialog");
+    overlay.setAttribute("aria-modal", "true");
+    overlay.innerHTML = `
+      <div class="class-reminder-card">
+        <h2>${reminder.title}</h2>
+        ${reminder.content}
+        <button type="button" class="class-reminder-ok">OK</button>
+      </div>
+    `;
+
+    document.body.appendChild(overlay);
+
+    let closed = false;
+    const close = () => {
+      if (closed) return;
+      closed = true;
+      overlay.remove();
+      showNextReminder();
+    };
+
+    overlay.querySelector(".class-reminder-ok").addEventListener("click", close);
+    overlay.addEventListener("click", event => {
+      if (event.target === overlay) close();
+    });
+    const onEscape = event => {
+      if (event.key === "Escape" && document.body.contains(overlay)) {
+        close();
+        document.removeEventListener("keydown", onEscape);
+      }
+    };
+    document.addEventListener("keydown", onEscape);
+  }
+
+  showNextReminder();
+}
+
+showUpcomingClassReminders();
 showBirthdayPopupIfAny();
 </script>
 </body>
