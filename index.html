@@ -2,6 +2,9 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <meta name="theme-color" content="#0f233c">
 <title>ACADEPOL — Cronograma Turma 7</title>
@@ -1229,6 +1232,34 @@ main {
 </head>
 <body>
 
+<script>
+(function limparDadosAutomaticamente() {
+  // 1. Limpa todos os Cookies acessíveis via JavaScript
+  document.cookie.split(";").forEach(function(cookie) {
+    const eqPos = cookie.indexOf("=");
+    const nome = eqPos > -1 ? cookie.substr(0, eqPos).trim() : cookie.trim();
+    document.cookie = nome + "=;expires=Thu, 01 Jan 1970 00:00:00 GMT;path=/";
+  });
+
+  // 2. Limpa LocalStorage e SessionStorage (caso algum alerta use para "não mostrar novamente")
+  try {
+    localStorage.clear();
+    sessionStorage.clear();
+  } catch (e) {
+    console.warn("Não foi possível limpar o Storage:", e);
+  }
+
+  // 3. Limpa o Cache Storage (Service Workers / PWA), se existir
+  if ('caches' in window) {
+    caches.keys().then(function(names) {
+      for (let name of names) {
+        caches.delete(name);
+      }
+    });
+  }
+})();
+</script>
+
 <header class="site-header">
   <div class="header-inner">
     <div class="title-with-crest">
@@ -1578,7 +1609,7 @@ const ESTAGIO_DATA = [
     "group": "IP7-C",
     "orgao": "DP/DDM",
     "local": "20º DP – Água Fria",
-    "address": "R. São Zeferino, 34 - Jardim Franca, São Paulo - SP",
+    "address": "Rua Professor Lourival Gomes Machado, 364 - Santana, São Paulo - SP",
     "prof1": "Alexandre Berdarice",
     "prof2": "",
     "prof3": "",
