@@ -1609,7 +1609,7 @@ const ESTAGIO_DATA = [
     "group": "IP7-C",
     "orgao": "DP/DDM",
     "local": "20º DP – Água Fria",
-    "address": "R. São Zeferino, 34 - Jardim Franca, São Paulo - SP",
+    "address": "Rua Professor Lourival Gomes Machado, 364 - Santana, São Paulo - SP",
     "prof1": "Alexandre Berdarice",
     "prof2": "",
     "prof3": "",
@@ -2433,7 +2433,9 @@ function reminderWeekday(isoDate) {
 }
 
 function showUpcomingClassReminders() {
-  const tomorrowISO = reminderAddDays(reminderTodayISO(), 1);
+  const todayISO = reminderTodayISO();
+  const tomorrowISO = reminderAddDays(todayISO, 1);
+  const todayLabel = `${reminderWeekday(todayISO)}, ${formatBR(todayISO)}`;
   const tomorrowLabel = `${reminderWeekday(tomorrowISO)}, ${formatBR(tomorrowISO)}`;
   const reminders = [];
 
@@ -2482,7 +2484,7 @@ function showUpcomingClassReminders() {
   }
 
   // Aviso de Defesa Pessoal: identifica a aula do dia seguinte diretamente
-  // na programação principal, evitando datas ou horários inventados.
+  // na programação principal.
   const defenseTomorrow = DATA.filter(item =>
     item.date === tomorrowISO &&
     (item.subject || "").toLowerCase().includes("defesa pessoal policial e condicionamento físico")
@@ -2514,6 +2516,78 @@ function showUpcomingClassReminders() {
         <p><strong>Pessoal, lembrando que amanhã teremos aula de Defesa Pessoal Policial e Condicionamento Físico.</strong></p>
         ${classInfo}
         <p>Por favor, não se esqueçam de vir com a <strong>roupa adequada</strong> para a prática das atividades! 🥋🏃‍♂️</p>
+        <p>Nos vemos lá!</p>
+      `
+    });
+  }
+
+  // Aviso de Armamento, Tiro e Táticas de Confronto Armado:
+  // verifica tanto o dia de hoje (todayISO) quanto o dia seguinte (tomorrowISO).
+  const isArmamentoClass = item =>
+    (item.subject || "").toLowerCase().includes("armamento, tiro e táticas de confronto armado");
+
+  const armamentoToday = DATA.filter(item => item.date === todayISO && isArmamentoClass(item));
+  const armamentoTomorrow = DATA.filter(item => item.date === tomorrowISO && isArmamentoClass(item));
+
+  if (armamentoToday.length || armamentoTomorrow.length) {
+    const buildArmamentoBlocks = (items, dayTag) => {
+      const unique = [];
+      const seen = new Set();
+      items.forEach(item => {
+        const sig = `${item.time || ""}|${item.location || ""}|${item.notes || ""}`;
+        if (!seen.has(sig)) {
+          seen.add(sig);
+          unique.push(item);
+        }
+      });
+
+      return unique.map(item => `
+        <section class="class-reminder-time-block">
+          <h3>📅 ${escapeHtml(dayTag)} — ⏰ ${escapeHtml(item.time || "Horário conforme a agenda")}</h3>
+          <p>📍 <strong>Local:</strong> ${escapeHtml(item.location || "Verificar na agenda")}${item.notes ? ` (${escapeHtml(item.notes)})` : ""}</p>
+        </section>
+      `).join("");
+    };
+
+    let dateBadgeText = "";
+    let periodText = "";
+    if (armamentoToday.length && armamentoTomorrow.length) {
+      dateBadgeText = `📅 Hoje (${todayLabel}) e Amanhã (${tomorrowLabel})`;
+      periodText = "hoje e amanhã";
+    } else if (armamentoToday.length) {
+      dateBadgeText = `📅 Hoje: ${todayLabel}`;
+      periodText = "hoje";
+    } else {
+      dateBadgeText = `📅 Amanhã: ${tomorrowLabel}`;
+      periodText = "amanhã";
+    }
+
+    const scheduleBlocks = [
+      ...(armamentoToday.length ? [buildArmamentoBlocks(armamentoToday, `Hoje (${formatBR(todayISO)})`)] : []),
+      ...(armamentoTomorrow.length ? [buildArmamentoBlocks(armamentoTomorrow, `Amanhã (${formatBR(tomorrowISO)})`)] : [])
+    ].join("");
+
+    reminders.push({
+      key: `turma7-aviso-armamento-${todayISO}-${armamentoToday.length ? "H" : ""}${armamentoTomorrow.length ? "A" : ""}`,
+      title: "⚠️ ATENÇÃO: AVISO DE INSTRUÇÃO ⚠️",
+      content: `
+        <span class="reminder-date">${escapeHtml(dateBadgeText)}</span>
+        <p>Informamos que teremos aula de <strong>Armamento, Tiro e Táticas de Confronto Armado</strong>, <strong>${periodText}</strong>.</p>
+        <p>Certifique-se de verificar com antecedência o <strong>local da instrução</strong> e conferir todos os <strong>equipamentos necessários</strong> antes de sair.</p>
+        ${scheduleBlocks}
+        <section class="class-reminder-time-block">
+          <h3>🎒 Equipamentos obrigatórios:</h3>
+          <ul>
+            <li>Calça tática</li>
+            <li>Cinto</li>
+            <li>Colete</li>
+            <li>Boné</li>
+            <li>Óculos de proteção</li>
+            <li>Lanterna</li>
+            <li>Abafador</li>
+          </ul>
+        </section>
+        <p><strong>Não esqueçam nenhum item. Fiquem atentos aos horários!</strong></p>
         <p>Nos vemos lá!</p>
       `
     });
@@ -2575,7 +2649,6 @@ function showUpcomingClassReminders() {
 
   showNextReminder();
 }
-
 showUpcomingClassReminders();
 showBirthdayPopupIfAny();
 </script>
