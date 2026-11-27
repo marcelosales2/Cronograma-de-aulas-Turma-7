@@ -2484,7 +2484,7 @@ function showUpcomingClassReminders() {
   }
 
   // Aviso de Defesa Pessoal: identifica a aula do dia seguinte diretamente
-  // na programação principal.
+  // na programação principal, evitando datas ou horários inventados.
   const defenseTomorrow = DATA.filter(item =>
     item.date === tomorrowISO &&
     (item.subject || "").toLowerCase().includes("defesa pessoal policial e condicionamento físico")
@@ -2569,26 +2569,25 @@ function showUpcomingClassReminders() {
 
     reminders.push({
       key: `turma7-aviso-armamento-${todayISO}-${armamentoToday.length ? "H" : ""}${armamentoTomorrow.length ? "A" : ""}`,
-      title: "⚠️ ATENÇÃO: AVISO DE INSTRUÇÃO ⚠️",
+      title: "🚨 ATENÇÃO: AVISO DE INSTRUÇÃO 🚨",
       content: `
         <span class="reminder-date">${escapeHtml(dateBadgeText)}</span>
-        <p>Informamos que teremos aula de <strong>Armamento, Tiro e Táticas de Confronto Armado</strong>, <strong>${periodText}</strong>.</p>
-        <p>Certifique-se de verificar com antecedência o <strong>local da instrução</strong> e conferir todos os <strong>equipamentos necessários</strong> antes de sair.</p>
+        <p>🎯 Informamos que <strong>${periodText}</strong> teremos aula de <strong>Armamento, Tiro e Táticas de Confronto Armado</strong>.</p>
+        <p>📍 Certifique-se de verificar com antecedência o <strong>local da instrução</strong> e conferir todo o <strong>material</strong> antes de sair.</p>
         ${scheduleBlocks}
         <section class="class-reminder-time-block">
           <h3>🎒 Equipamentos obrigatórios:</h3>
-          <ul>
-            <li>Calça tática</li>
-            <li>Cinto</li>
-            <li>Colete</li>
-            <li>Boné</li>
-            <li>Óculos de proteção</li>
-            <li>Lanterna</li>
-            <li>Abafador</li>
+          <ul style="list-style: none; padding-left: 4px;">
+            <li>👖 Calça tática</li>
+            <li>🪢 Cinto</li>
+            <li>🦺 Colete</li>
+            <li>🧢 Boné</li>
+            <li>🥽 Óculos de proteção</li>
+            <li>🔦 Lanterna</li>
+            <li>🎧 Abafador</li>
           </ul>
         </section>
-        <p><strong>Não esqueçam nenhum item. Fiquem atentos aos horários!</strong></p>
-        <p>Nos vemos lá!</p>
+        <p>⚠️ <strong>Não esqueçam nenhum item. Fiquem atentos aos horários!</strong> ⏰</p>
       `
     });
   }
@@ -2649,6 +2648,7 @@ function showUpcomingClassReminders() {
 
   showNextReminder();
 }
+
 showUpcomingClassReminders();
 showBirthdayPopupIfAny();
 </script>
